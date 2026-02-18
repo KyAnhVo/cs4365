@@ -98,12 +98,53 @@ def depthFirstSearch(problem):
 
     initState = problem.getStartState()
     visited = set()
-    moves = []
 
-    
+    # parent keep track in a dictionary
+    parent = {}
+    parent[initState] = (None, None, None)
 
+    # depth keeps track of a node's depth, so that we can look set child's depth
+    # to parent's depth + 1.
+    depth = {}
 
+    # This is the main queue
+    queue = util.PriorityQueue()
+    queue.push(initState, 0)
 
+    while not queue.isEmpty():
+        currNode = queue.pop()
+        #print(currNode)
+
+        # if visited - dont care
+        if currNode in visited:
+            continue
+        visited.add(currNode)
+
+        # check parent, set node's depth to parent's depth
+        if parent[currNode][0] != None:
+            depth[currNode] = depth[parent[currNode][0]] + 1
+        else:
+            depth[currNode] = 1
+
+        # check end 
+        if problem.isGoalState(currNode):
+            # implement reverse dir
+            moves = []
+            #print(moves)
+            while parent[currNode][0] != None:
+                moves.append(parent[currNode][1])
+                currNode = parent[currNode][0]
+            moves.reverse()
+            return moves
+
+        # append children
+        for child, move, _ in problem.getSuccessors(currNode):
+            #print(child, end=" ")
+            if child in visited:
+                continue
+            parent[child] = (currNode, move)
+            queue.update(child, 1 / (depth[currNode] + 1))
+        #print()
     
 
     util.raiseNotDefined()
@@ -111,11 +152,114 @@ def depthFirstSearch(problem):
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
+
+    initState = problem.getStartState()
+    visited = set()
+
+    # parent keep track in a dictionary
+    parent = {}
+    parent[initState] = (None, None)
+
+    # depth keeps track of a node's depth, so that we can look set child's depth
+    # to parent's depth + 1.
+    depth = {}
+
+    # This is the main queue
+    queue = util.PriorityQueue()
+    queue.push(initState, 0)
+
+    while not queue.isEmpty():
+        currNode = queue.pop()
+        #print(currNode)
+
+        # if visited - dont care
+        if currNode in visited:
+            continue
+        visited.add(currNode)
+
+        # check parent, set node's depth to parent's depth
+        if parent[currNode][0] != None:
+            depth[currNode] = depth[parent[currNode][0]] + 1
+        else:
+            depth[currNode] = 1
+
+        # check end 
+        if problem.isGoalState(currNode):
+            # implement reverse dir
+            moves = []
+            #print(moves)
+            while parent[currNode][0] != None:
+                moves.append(parent[currNode][1])
+                currNode = parent[currNode][0]
+            moves.reverse()
+            return moves
+
+        # append children
+        for child, move, _ in problem.getSuccessors(currNode):
+            #print(child, end=" ")
+            if child in visited:
+                continue
+            
+            if child in parent:
+                childParentDepth = depth[parent[child][0]]
+                if childParentDepth < depth[currNode]:
+                    continue
+            parent[child] = (currNode, move)
+            queue.update(child, depth[currNode] + 1)
+        #print()
+
     util.raiseNotDefined()
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
+
+    initState = problem.getStartState()
+    visited = set()
+
+    # current parent, key = state, value = (parent state, move, cost to state if use this path)
+    parent = {}
+    parent[initState] = (None, None, 0)
+
+    # distance
+    dist = {}
+
+    # main queue
+    queue = util.PriorityQueue()
+    queue.push(initState, 0)
+
+    while not queue.isEmpty():
+        currState = queue.pop()
+        if currState in visited:
+            continue
+        visited.add(currState)
+
+        if parent[currState][0] is None:
+            dist[currState] = 0
+        else:
+            dist[currState] = parent[currState][2]
+
+        # check end 
+        if problem.isGoalState(currState):
+            # implement reverse dir
+            moves = []
+            #print(moves)
+            while parent[currState][0] != None:
+                moves.append(parent[currState][1])
+                currState = parent[currState][0]
+            moves.reverse()
+            return moves
+
+        # do children enqueueing
+        for child, move, cost in problem.getSuccessors(currState):
+            if child in visited:
+                continue
+            if child in parent:
+                _, _, currCost = parent[child]
+                if currCost < dist[currState] + cost:
+                    continue
+            parent[child] = (currState, move, dist[currState] + cost)
+            queue.push(child, parent[child][2])
     util.raiseNotDefined()
 
 def nullHeuristic(state, problem=None):
@@ -128,55 +272,54 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-
-    ''' Key of q:
-        - state
-        - parent state
-        - dist from source
-        - parent action to state
-        Value of q:
-        - h(n) + g(n)
-    '''
-
-    startstate = problem.getStartState()
-    q = util.PriorityQueue()
+    initState = problem.getStartState()
     visited = set()
-    q.push([startstate, None, 0, None], heuristic(startstate, problem))
 
-    nodes = {}
+    # current parent, key = state, value = (parent state, move, cost to state if use this path)
+    parent = {}
+    parent[initState] = (None, None, 0)
 
-    while not q.isEmpty():
-        currState, parentState, distFromSource, parentAction = q.pop()
+    # distance
+    dist = {}
+
+    # main queue
+    queue = util.PriorityQueue()
+    queue.push(initState, 0)
+
+    while not queue.isEmpty():
+        currState = queue.pop()
         if currState in visited:
             continue
         visited.add(currState)
-        
-        # Create currState node, add to parent's children, then add to node dictionary
-        currNode = TreeNode(currState, parentState, parentAction, distFromSource)
-        if parentState is not None:
-            nodes[parentState].children.append(currNode)
-        nodes[currState] = currNode
 
+        if parent[currState][0] is None:
+            dist[currState] = 0
+        else:
+            dist[currState] = parent[currState][2]
+
+        # check end 
         if problem.isGoalState(currState):
-            # pass up
+            # implement reverse dir
             moves = []
-            while currNode.parent is not None:
-                moves.append(currNode.actionFromParent)
-                currNode = currNode.parent
+            #print(moves)
+            while parent[currState][0] != None:
+                moves.append(parent[currState][1])
+                currState = parent[currState][0]
+            moves.reverse()
+            return moves
 
-            return moves.reverse()
-
-        # add children nodes in
-        children = problem.getSuccessors(currState)
-        for child, action, dist in children:
+        # do children enqueueing
+        for child, move, cost in problem.getSuccessors(currState):
             if child in visited:
                 continue
-            distSourceToChild = dist + distFromSource
-            q.push([child, currState, distSourceToChild, action], distSourceToChild + heuristic(child, problem))
-
-    
-
+            if child in parent:
+                _, _, currCost = parent[child]
+                if currCost < dist[currState] + cost:
+                    continue
+            parent[child] = (currState, move, dist[currState] + cost)
+            queue.push(child, parent[child][2] + heuristic(child, problem))
     util.raiseNotDefined()
+
 
 
 # Abbreviations
