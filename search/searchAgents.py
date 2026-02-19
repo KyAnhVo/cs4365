@@ -34,6 +34,7 @@ description for details.
 Good luck and happy searching!
 """
 
+import enum
 from game import Directions
 from game import Agent
 from game import Actions
@@ -380,27 +381,39 @@ def cornersHeuristic(state, problem):
     corners = problem.corners # These are the corner coordinates
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
+    stateListForm = list(state)
+
+    # Heuristic: we essentially go to the closest remaining corner, then we visit
+    # the closest remaining corner from our pos, and we repeatedly do that.
+    # We "go" by manhattan distance.
+    
     sumCornerDist = 0
-    x, y, firstVisited, secondVisited, thirdVisited, fourthVisited = state
+    pos = (state[0], state[1])
+    cornersVisited = stateListForm[2:]
 
-    if walls[x][y]:
-        return float('infinity')
+    heuristicVal = 0
 
-    if firstVisited and secondVisited and thirdVisited and fourthVisited:
-        return 0
+    while not (cornersVisited[0] and cornersVisited[1] and cornersVisited[2] and cornersVisited[3]):
+        distToCorner = list(map(lambda x: abs(x[0] - pos[0]) + abs(x[1] - pos[1]), corners))
+        moveToInd = -1
+        currClosestCorner = (-1, -1)
+        currClosestCornerDist = float('infinity')
+        for ind, corner in enumerate(corners):
+            if cornersVisited[ind]:
+                continue
+            if distToCorner[ind] >= currClosestCornerDist:
+                continue
+            currClosestCorner = corner
+            pos = currClosestCorner
+            currClosestCornerDist = distToCorner[ind]
+            moveToInd = ind
+        
+        cornersVisited[moveToInd] = True
+        heuristicVal += currClosestCornerDist
 
-    if not firstVisited:
-        sumCornerDist += abs(x - corners[0][0] + y - corners[0][1])
-    if not secondVisited:
-        sumCornerDist += abs(x - corners[1][0] + y - corners[1][1])
-    if not thirdVisited:
-        sumCornerDist += abs(x - corners[2][0] + y - corners[2][1])
-    if not fourthVisited:
-        sumCornerDist += abs(x - corners[3][0] + y - corners[3][1])
-
-
+    return heuristicVal
+    
     "*** YOUR CODE HERE ***"
-    return sumCornerDist * 0.1 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -494,7 +507,38 @@ def foodHeuristic(state, problem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+
+    if 'foods' not in problem.heuristicInfo:
+        # construct the foods tuple
+        # must be in 1st call
+        problem.heuristicInfo['food'] = []
+        for x, _ in enumerate(foodGrid):
+            for y, _ in enumerate(foodGrid[0]):
+                if foodGrid[x][y]:
+                    problem.heuristicInfo['food'].append((x, y))
+
+    # find shortest manhattan dist to the next food, repeatedly
+    def manhattan(position, foodPos):
+        return abs(foodPos[0] - position[0]) + abs(foodPos[1] - position[1])
+
+    totalManhattanLength = 0
+    collectFoods = {food: foodGrid[food[0]][food[1]] for food in problem.heuristicInfo['food']}
+
+    while any(collectFoods.values()):
+        minDist = float('infinity')
+        nextPos = None
+        for pos, hasFood in collectFoods.items():
+            if not hasFood:
+                continue
+            if manhattan(position, pos) < minDist:
+                nextPos = pos
+                minDist = manhattan(position, pos)
+        position = nextPos
+        totalManhattanLength += minDist
+        collectFoods[nextPos] = False
+
+    print(totalManhattanLength)
+    return totalManhattanLength
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
