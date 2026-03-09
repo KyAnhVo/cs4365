@@ -72,14 +72,6 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
-class TreeNode:
-    def __init__(self, state, parent, actionFromParent, distFromSource):
-        self.state = state
-        self.parent = parent
-        self.actionFromParent = actionFromParent
-        self.children = []
-        self.distFromSource = distFromSource
-
 def depthFirstSearch(problem):
     """
     Search the deepest nodes in the search tree first.
@@ -206,9 +198,6 @@ def breadthFirstSearch(problem):
                     continue
             parent[child] = (currNode, move)
             queue.update(child, depth[currNode] + 1)
-        #print()
-
-    util.raiseNotDefined()
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""

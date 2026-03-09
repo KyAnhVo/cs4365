@@ -34,10 +34,10 @@ description for details.
 Good luck and happy searching!
 """
 
-import enum
 from game import Directions
 from game import Agent
 from game import Actions
+from search import game
 import util
 import time
 import search
@@ -517,28 +517,16 @@ def foodHeuristic(state, problem):
                 if foodGrid[x][y]:
                     problem.heuristicInfo['food'].append((x, y))
 
-    # find shortest manhattan dist to the next food, repeatedly
-    def manhattan(position, foodPos):
-        return abs(foodPos[0] - position[0]) + abs(foodPos[1] - position[1])
+    # if there is food in current position, remove that food.
+    if position in problem.heuristicInfo['food']:
+        problem.heuristicInfo['food'].remove(position)
 
-    totalManhattanLength = 0
-    collectFoods = {food: foodGrid[food[0]][food[1]] for food in problem.heuristicInfo['food']}
+    if len(problem.heuristicInfo['food']) == 0:
+        return 0
 
-    while any(collectFoods.values()):
-        minDist = float('infinity')
-        nextPos = None
-        for pos, hasFood in collectFoods.items():
-            if not hasFood:
-                continue
-            if manhattan(position, pos) < minDist:
-                nextPos = pos
-                minDist = manhattan(position, pos)
-        position = nextPos
-        totalManhattanLength += minDist
-        collectFoods[nextPos] = False
-
-    print(totalManhattanLength)
-    return totalManhattanLength
+    # find shortest manhattan dist to the furthest
+    distLst = [util.manhattanDistance(position, foodPos) for foodPos in problem.heuristicInfo['food']]
+    return max(distLst)
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -569,7 +557,8 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return search.breadthFirstSearch(AnyFoodSearchProblem(gameState))
+
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -603,6 +592,10 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         complete the problem definition.
         """
         x,y = state
+        if self.food[x][y]:
+            self.food[x][y] = False
+            return True
+        return False
 
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
